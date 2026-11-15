@@ -8,7 +8,6 @@
 	"license": "ISC",
 	"copyright": "Copyright © 2026, Icosahedron <icosahedroninstrumentality@proton.me>",
 	"name": "jitkernel",
-	"libs": ["opengl"],
 	"description": "JITKernel graphics foundation for D applications.",
 	"dependencies": {
 		"bindbc-opengl": "~>1.1.1"
