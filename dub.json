@@ -17,5 +17,5 @@
 	"dflags-ldc": ["-L-Wl,--no-as-needed"],
 	"systemDependencies": "Requires installed libraries with headers for `opengl` 3.3 core or higher and `glfw`.",
 	"buildRequirements": ["allowWarnings", "disallowDeprecations"],
-	"targetType": "library"
+	"targetType": "staticLibrary"
 }
