@@ -1,4 +1,4 @@
-# axiom:jitkernel-d
+# jitkernel
 
 JITKernel is a portable dynamic shader platform written primarily for D.
 
