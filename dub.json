@@ -1,13 +1,13 @@
 {
 	"authors": [
-		"Icosahedron Instrumentality <icosahedroninstrumentality@proton.me>"
+		"Icosahedron <icosahedroninstrumentality@proton.me>"
 	],
 	"versions": [
 		"GL_33"
 	],
 	"mainSourceFile": "source/axiom.jitkernel.d",
 	"license": "ISC",
-	"copyright": "Copyright © 2026, Icosahedron Instrumentality <icosahedroninstrumentality@proton.me>",
+	"copyright": "Copyright © 2026, Icosahedron <icosahedroninstrumentality@proton.me>",
 	"name": "jitkernel",
 	"libs": ["opengl", "glfw"],
 	"description": "JITKernel graphics foundation for D applications.",
