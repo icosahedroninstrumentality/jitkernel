@@ -5,7 +5,6 @@
 	"versions": [
 		"GL_33"
 	],
-	"mainSourceFile": "source/axiom.jitkernel.d",
 	"license": "ISC",
 	"copyright": "Copyright © 2026, Icosahedron <icosahedroninstrumentality@proton.me>",
 	"name": "jitkernel",
