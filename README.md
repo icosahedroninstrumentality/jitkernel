@@ -1,5 +1,7 @@
 # jitkernel
 
+[![Build](https://github.com/icosahedroninstrumentality/jitkernel/actions/workflows/build.yml/badge.svg)](https://github.com/icosahedroninstrumentality/jitkernel/actions/workflows/build.yml)
+
 JITKernel is a portable dynamic shader platform written in D. It supports shader generation, JIT compilation, dynamic texture allocations, automatic texture de-allocations, and functions-as-shaders.
 
 Please help us develop this via donatin at Ko-fi!
