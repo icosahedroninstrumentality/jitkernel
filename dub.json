@@ -8,13 +8,13 @@
 	"license": "ISC",
 	"copyright": "Copyright © 2026, Icosahedron <icosahedroninstrumentality@proton.me>",
 	"name": "jitkernel",
-	"libs": ["opengl", "glfw"],
+	"libs": ["opengl"],
 	"description": "JITKernel graphics foundation for D applications.",
 	"dependencies": {
 		"bindbc-opengl": "~>1.1.1"
 	},
 	"dflags-ldc": ["-L-Wl,--no-as-needed"],
-	"systemDependencies": "Requires installed libraries with headers for `opengl` 3.3 core or higher and `glfw`.",
+	"systemDependencies": "Requires installed libraries with headers for `opengl` 3.3 core or higher.",
 	"buildRequirements": ["allowWarnings", "disallowDeprecations"],
 	"targetType": "staticLibrary"
 }
