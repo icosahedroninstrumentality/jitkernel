@@ -97,6 +97,12 @@ private mixin template KernelExpressions () {
 		kernel.main ~= name ~ op ~ "=" ~ _v.name ~ ";";
 		return this;
 	}
+
+	public auto T opCast(T) () const {
+		KernelStored!T ks = new KernelStored!T(kernel);
+		kernel.main ~= ext!(T)()~" "~ks.name~"="~ext!(T)()~"("~name~");";
+		return ks;
+	}
 }
 
 public class KernelParameter (K) : KernelStored!K {
