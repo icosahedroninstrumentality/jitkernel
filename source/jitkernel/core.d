@@ -72,20 +72,29 @@ private mixin template KernelExpressions () {
 		return ks;
 	}
 
+	public KernelStored!Radian clamp (A, B) (A a, B b) if (is(T == Radian) && isStoredOrLiteral!(Radian, A) && isStoredOrLiteral!(Radian, B)) {
+		auto _a = kernel.asKernelStored!Radian(a);
+		auto _b = kernel.asKernelStored!Radian(b);
+		KernelStored!Radian ks = new KernelStored!Radian(kernel);
+		kernel.main ~= ext!(Radian)()~" "~ks.name~"=clamp("~name~","~_a.name~","~_b.name~");";
+		return ks;
+	}
+
 	public KernelStored!R component (string c, R = ComponentToType!c) () if (validComponent!T(c) && validComponentExtract!(T, R)) {
 		KernelStored!R ks = new KernelStored!R(kernel);
 		kernel.main ~= ext!(R)()~" "~ks.name~"="~name~"."~c~";";
 		return ks;
 	}
 
-	public KernelStored!U opIndex (U, A) (A index) if (isStoredOrLiteral!(int, A) && is(T == U[])) {
+	public auto opIndex (A) (A index) if (isStoredOrLiteral!(int, A) && isKernelArray!T) {
+		alias U = ArrayElementType!T;
 		auto _index = kernel.asKernelStored!(ElementTypeFromArg!A)(index);
 		KernelStored!U ks = new KernelStored!U(kernel);
 		kernel.main ~= ext!(U)()~" "~ks.name~"="~name~"["~_index.name~"];";
 		return ks;
 	}
 
-	public KernelStored!U opIndexAssign (U, A, B) (B data, A index) if (isStoredOrLiteral!(int, A) && is(T == U[]) && isStoredOrLiteral!(ElementTypeFromArg!B, B) && is(ElementTypeFromArg!B) == U) {
+	public auto opIndexAssign (A, B) (B data, A index) if (isStoredOrLiteral!(int, A) && isKernelArray!T && isStoredOrLiteral!(ElementTypeFromArg!B, B) && is(ElementTypeFromArg!B) == ArrayElementType!T) {
 		auto _index = kernel.asKernelStored!(ElementTypeFromArg!A)(index);
 		auto _v = kernel.asKernelStored!(ElementTypeFromArg!B)(data);
 		kernel.main ~= name~"["~_index.name~"]="~_v~";";
@@ -98,7 +107,7 @@ private mixin template KernelExpressions () {
 		return this;
 	}
 
-	public auto T opCast(T) () const {
+	public auto opCast(T) () {
 		KernelStored!T ks = new KernelStored!T(kernel);
 		kernel.main ~= ext!(T)()~" "~ks.name~"="~ext!(T)()~"("~name~");";
 		return ks;
@@ -159,6 +168,20 @@ private template ElementTypeFromArg(V) {
 	else static if (KernelLiteral!V) alias ElementTypeFromArg = V;
 	else static assert(0, "Unsupported type: " ~ V.stringof);
 }
+
+private template ArrayElementType(T) {
+	static if (is(T == bool[])) alias ArrayElementType = bool;
+	else static if (is(T == int[])) alias ArrayElementType = int;
+	else static if (is(T == Radian[])) alias ArrayElementType = Radian;
+	else static if (is(T == Degree[])) alias ArrayElementType = Degree;
+	else static if (is(T == Vector2[])) alias ArrayElementType = Vector2;
+	else static if (is(T == Vector3[])) alias ArrayElementType = Vector3;
+	else static if (is(T == Vector4[])) alias ArrayElementType = Vector4;
+	else static if (is(T == Texture[])) alias ArrayElementType = Texture;
+	else static assert(false, "Unsupported array type: " ~ T.stringof);
+}
+
+private enum isKernelArray(T) = is(T == bool[]) || is(T == int[]) || is(T == Radian[]) || is(T == Degree[]) || is(T == Vector2[]) || is(T == Vector3[]) || is(T == Vector4[]) || is(T == Texture[]);
 
 public class Kernel {
 	private int nameCount = 0;
