@@ -239,8 +239,8 @@ public class Kernel {
 		return ku;
 	}
 
-	public KernelStored!T link (T) (ref T data) {
-		KernelParameter!T u = uniform!T();
+	public KernelStored!T link (T) (ref T data, ulong arrayLength = 1) {
+		KernelParameter!T u = uniform!T(arrayLength);
 		prehook((Kernel k) {u.set(data);});
 		return u;
 	}
