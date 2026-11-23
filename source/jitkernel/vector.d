@@ -68,7 +68,7 @@ public struct Degree {
 	pragma(inline, true) public Degree pow (Degree power) const @safe pure nothrow @nogc { return Degree(std.math.pow(data, power.raw)); }
 	pragma(inline, true) public Degree min (Degree other) const @safe pure nothrow @nogc { return Degree(std.algorithm.min(data, other.raw)); }
 	pragma(inline, true) public Degree max (Degree other) const @safe pure nothrow @nogc { return Degree(std.algorithm.max(data, other.raw)); }
-	pragma(inline, true) public Degree mix (Degree other, Radian v) const @safe pure nothrow @nogc { return (this.direction() * (Radian(1) - v) + other.direction() * v).angle; }
+	public Degree mix (Degree other, Radian v) const @safe pure nothrow @nogc { return (this.direction() * (Radian(1) - v) + other.direction() * v).angle; }
 	pragma(inline, true) public @property Degree clamp (Degree b, Degree t) const @safe pure nothrow @nogc { return Degree(std.algorithm.clamp(data, b.raw, t.raw)); }
 	pragma(inline, true) public @property Degree ceil () const @safe pure nothrow @nogc { return Degree(std.math.ceil(data)); }
 	pragma(inline, true) public @property Degree floor () const @safe pure nothrow @nogc { return Degree(std.math.floor(data)); }
