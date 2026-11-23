@@ -6,6 +6,81 @@ import bindbc.opengl;
 import std.string;
 
 public GLuint fb;
+private __gshared GLuint copyReadFbo;
+private __gshared GLuint copyDrawFbo;
+
+private void ensureCopyFbos() {
+	if (copyReadFbo == 0)
+		glGenFramebuffers(1, &copyReadFbo);
+
+	if (copyDrawFbo == 0)
+		glGenFramebuffers(1, &copyDrawFbo);
+}
+
+private void blitTextureAreas(
+	Texture source,
+	Texture destination,
+	Vector4 sourceArea,
+	Vector4 destinationArea
+) {
+	ensureCopyFbos();
+
+	// A Texture.raw source represents the default framebuffer.
+	if (source is Texture.raw) {
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+		glReadBuffer(GL_BACK);
+	} else {
+		if (source.id == 0)
+			source.allocate();
+
+		glBindFramebuffer(GL_READ_FRAMEBUFFER, copyReadFbo);
+		glFramebufferTexture2D(
+			GL_READ_FRAMEBUFFER,
+			GL_COLOR_ATTACHMENT0,
+			GL_TEXTURE_2D,
+			source.id,
+			0
+		);
+		glReadBuffer(GL_COLOR_ATTACHMENT0);
+	}
+
+	// A Texture.raw destination represents the default framebuffer.
+	if (destination is Texture.raw) {
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+		glDrawBuffer(GL_BACK);
+	} else {
+		if (destination.id == 0)
+			destination.allocate();
+
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, copyDrawFbo);
+		glFramebufferTexture2D(
+			GL_DRAW_FRAMEBUFFER,
+			GL_COLOR_ATTACHMENT0,
+			GL_TEXTURE_2D,
+			destination.id,
+			0
+		);
+		glDrawBuffer(GL_COLOR_ATTACHMENT0);
+	}
+
+	glBlitFramebuffer(
+		cast(GLint) sourceArea.x.raw,
+		cast(GLint) sourceArea.y.raw,
+		cast(GLint) (sourceArea.x + sourceArea.z).raw,
+		cast(GLint) (sourceArea.y + sourceArea.w).raw,
+
+		cast(GLint) destinationArea.x.raw,
+		cast(GLint) destinationArea.y.raw,
+		cast(GLint) (destinationArea.x + destinationArea.z).raw,
+		cast(GLint) (destinationArea.y + destinationArea.w).raw,
+
+		GL_COLOR_BUFFER_BIT,
+		GL_NEAREST
+	);
+
+	// Restore the FBO used by Texture.use().
+	glBindFramebuffer(GL_FRAMEBUFFER, fb);
+}
 
 public class Texture {
 	public __gshared Texture raw = null;
@@ -84,5 +159,21 @@ public class Texture {
 		);
 		glClear(GL_COLOR_BUFFER_BIT);
 		//glDrawArrays(GL_TRIANGLES, 0, 6);
+	}
+	
+	public void copyTo(
+		Texture destination,
+		Vector4 sourceArea,
+		Vector4 destinationArea
+	) {
+		blitTextureAreas(this, destination, sourceArea, destinationArea);
+	}
+
+	public void copyFrom(
+		Texture source,
+		Vector4 sourceArea,
+		Vector4 destinationArea
+	) {
+		blitTextureAreas(source, this, sourceArea, destinationArea);
 	}
 }
