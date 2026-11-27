@@ -97,7 +97,7 @@ private mixin template KernelExpressions () {
 	public auto opIndexAssign (A, B) (B data, A index) if (StoredOrLiteral!(int, A) && isKernelArray!T && StoredOrLiteral!(ElementTypeFromArg!B, B) && is(ElementTypeFromArg!B) == ArrayElementType!T) {
 		auto _index = kernel.asKernelStored!(ElementTypeFromArg!A)(index);
 		auto _v = kernel.asKernelStored!(ElementTypeFromArg!B)(data);
-		kernel.attachToMain(name~"["~_index.name~"]="~_v~";");
+		kernel.attachToMain(name~"["~_index.name~"]="~_v.name~";");
 		return _v;
 	}
 
