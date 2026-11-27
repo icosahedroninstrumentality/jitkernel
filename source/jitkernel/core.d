@@ -29,13 +29,13 @@ private string ext (T) (ulong S = 1) {
 
 public class KernelStored (T) {
 	alias ElementType = T;
-	Kernel kernel;
+	IKernel kernel;
 	string name;
 	ulong arrayLength = 1;
 
 	mixin KernelExpressions;
 
-	this (Kernel _kernel = null, string _name = "", ulong _arrayLength = 1) {
+	this (IKernel _kernel = null, string _name = "", ulong _arrayLength = 1) {
 		kernel = _kernel; name = _name; arrayLength = _arrayLength;
 		name = (_name == "") ? kernel.genName() : _name;
 	}
@@ -60,7 +60,7 @@ private mixin template KernelExpressions () {
 		alias ResultType = PromoteTypes!(T, ElementTypeFromArg!V);
 		auto _v = kernel.asKernelStored!(ElementTypeFromArg!V)(v);
 		KernelStored!ResultType ks = new KernelStored!ResultType(kernel);
-		kernel.main ~= ext!(ResultType)() ~ " " ~ ks.name ~ "=" ~ name ~ op ~ _v.name ~ ";";
+		kernel.attachToMain(ext!(ResultType)() ~ " " ~ ks.name ~ "=" ~ name ~ op ~ _v.name ~ ";");
 		return ks;
 	}
 
@@ -68,7 +68,7 @@ private mixin template KernelExpressions () {
 		alias ResultType = PromoteTypes!(ElementTypeFromArg!V, T);
 		auto _v = kernel.asKernelStored!(ElementTypeFromArg!V)(v);
 		KernelStored!ResultType ks = new KernelStored!ResultType(kernel);
-		kernel.main ~= ext!(ResultType)() ~ " " ~ ks.name ~ "=" ~ _v.name ~ op ~ name ~ ";";
+		kernel.attachToMain(ext!(ResultType)() ~ " " ~ ks.name ~ "=" ~ _v.name ~ op ~ name ~ ";");
 		return ks;
 	}
 
@@ -76,13 +76,13 @@ private mixin template KernelExpressions () {
 		auto _a = kernel.asKernelStored!Radian(a);
 		auto _b = kernel.asKernelStored!Radian(b);
 		KernelStored!Radian ks = new KernelStored!Radian(kernel);
-		kernel.main ~= ext!(Radian)()~" "~ks.name~"=clamp("~name~","~_a.name~","~_b.name~");";
+		kernel.attachToMain(ext!(Radian)()~" "~ks.name~"=clamp("~name~","~_a.name~","~_b.name~");");
 		return ks;
 	}
 
 	public KernelStored!R component (string c, R = ComponentToType!c) () if (validComponent!T(c) && validComponentExtract!(T, R)) {
 		KernelStored!R ks = new KernelStored!R(kernel);
-		kernel.main ~= ext!(R)()~" "~ks.name~"="~name~"."~c~";";
+		kernel.attachToMain(ext!(R)()~" "~ks.name~"="~name~"."~c~";");
 		return ks;
 	}
 
@@ -90,26 +90,26 @@ private mixin template KernelExpressions () {
 		alias U = ArrayElementType!T;
 		auto _index = kernel.asKernelStored!(ElementTypeFromArg!A)(index);
 		KernelStored!U ks = new KernelStored!U(kernel);
-		kernel.main ~= ext!(U)()~" "~ks.name~"="~name~"["~_index.name~"];";
+		kernel.attachToMain(ext!(U)()~" "~ks.name~"="~name~"["~_index.name~"];");
 		return ks;
 	}
 
 	public auto opIndexAssign (A, B) (B data, A index) if (StoredOrLiteral!(int, A) && isKernelArray!T && StoredOrLiteral!(ElementTypeFromArg!B, B) && is(ElementTypeFromArg!B) == ArrayElementType!T) {
 		auto _index = kernel.asKernelStored!(ElementTypeFromArg!A)(index);
 		auto _v = kernel.asKernelStored!(ElementTypeFromArg!B)(data);
-		kernel.main ~= name~"["~_index.name~"]="~_v~";";
+		kernel.attachToMain(name~"["~_index.name~"]="~_v~";");
 		return _v;
 	}
 
 	public auto opOpAssign(string op, V)(V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V)) {
 		auto _v = kernel.asKernelStored!(ElementTypeFromArg!V)(v);
-		kernel.main ~= name ~ op ~ "=" ~ _v.name ~ ";";
+		kernel.attachToMain(name ~ op ~ "=" ~ _v.name ~ ";");
 		return this;
 	}
 
 	public auto opCast(T) () {
 		KernelStored!T ks = new KernelStored!T(kernel);
-		kernel.main ~= ext!(T)()~" "~ks.name~"="~ext!(T)()~"("~name~");";
+		kernel.attachToMain(ext!(T)()~" "~ks.name~"="~ext!(T)()~"("~name~");");
 		return ks;
 	}
 }
@@ -117,11 +117,11 @@ private mixin template KernelExpressions () {
 public class KernelParameter (K) : KernelStored!K {
 	public Uniform!K uniform;
 
-	this (Kernel _kernel = null, string _name = "", ulong _arrayLength = 1) {
+	this (IKernel _kernel = null, string _name = "", ulong _arrayLength = 1) {
 		super(_kernel, _name, _arrayLength);
 	}
 
-	this (Kernel _kernel = null, ulong _arrayLength = 1, string _name = "") {
+	this (IKernel _kernel = null, ulong _arrayLength = 1, string _name = "") {
 		super(_kernel, _name, _arrayLength);
 	}
 
@@ -184,18 +184,74 @@ private template ArrayElementType(T) {
 
 private enum isKernelArray(T) = is(T == bool[]) || is(T == int[]) || is(T == Radian[]) || is(T == Degree[]) || is(T == Vector2[]) || is(T == Vector3[]) || is(T == Vector4[]) || is(T == Texture[]);
 
-public class Kernel {
+public interface IKernel {
+	public void attachToSetup (string data);
+	public void attachToMain (string data);
+	public string genName ();
+	public KernelStored!Vector2 compose (A, B) (A a, B b) if (StoredOrLiteral!(Radian, A) && StoredOrLiteral!(Radian, B));
+	public KernelStored!Vector3 compose (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(Radian, A) && StoredOrLiteral!(Radian, B) && StoredOrLiteral!(Radian, C));
+	public KernelStored!Vector4 compose (A, B, C, D) (A a, B b, C c, D d) if (StoredOrLiteral!(Radian, A) && StoredOrLiteral!(Radian, B) && StoredOrLiteral!(Radian, C) && StoredOrLiteral!(Radian, D));
+	public KernelStored!Radian clamp (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(Radian, A) && StoredOrLiteral!(Radian, B) && StoredOrLiteral!(Radian, C));
+	public KernelStored!(ElementTypeFromArg!A) mix (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && StoredOrLiteral!(ElementTypeFromArg!C, C) && is(ElementTypeFromArg!A == ElementTypeFromArg!B) && (is(ElementTypeFromArg!C == ElementTypeFromArg!A) || is(ElementTypeFromArg!C == Radian)));
+	public KernelStored!(ElementTypeFromArg!A) pow (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B) || is(ElementTypeFromArg!B == Radian)));
+	public KernelStored!(ElementTypeFromArg!A) min (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && is(ElementTypeFromArg!A == ElementTypeFromArg!B));
+	public KernelStored!(ElementTypeFromArg!A) max (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && is(ElementTypeFromArg!A == ElementTypeFromArg!B));
+	public KernelStored!(ElementTypeFromArg!A) dot (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && is(ElementTypeFromArg!A == ElementTypeFromArg!B));
+	public KernelStored!(ElementTypeFromArg!V) sin (V) (V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V));
+	public KernelStored!(ElementTypeFromArg!V) cos (V) (V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V));
+	public KernelStored!(ElementTypeFromArg!V) tan (V) (V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V));
+	public KernelStored!(ElementTypeFromArg!V) abs (V) (V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V));
+	public KernelStored!(ElementTypeFromArg!V) atan (V) (V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V));
+	public KernelStored!(ElementTypeFromArg!V) atan2 (V) (V y, V x) if (StoredOrLiteral!(ElementTypeFromArg!V, V));
+	public KernelStored!(ElementTypeFromArg!V) normalize (V) (V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V));
+	public KernelStored!(ElementTypeFromArg!T) op (T, A, B) (A a, string op, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B));
+	public KernelStored!Vector4 sample (A) (KernelStored!Texture tex, A a) if (StoredOrLiteral!(Vector2, A));
+	public void output (A) (A a) if (StoredOrLiteral!(Vector4, A));
+	public void earlyOutput (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!bool, A) && StoredOrLiteral!(ElementTypeFromArg!Vector4, B));
+	public void branch (A) (A a, void delegate (Kernel) positive, void delegate (Kernel) negative) if (StoredOrLiteral!(ElementTypeFromArg!bool, A));
+	public void loop (A, B) (A begin, string checkOp = "<", B until, string updateOp = "++", void delegate (Kernel, KernelStored!(ElementTypeFromArg!A)) eval) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && is(ElementTypeFromArg!A == ElementTypeFromArg!B));
+	public KernelStored!(ElementTypeFromArg!B) step (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B));
+	public KernelStored!(ElementTypeFromArg!C) smoothstep (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && StoredOrLiteral!(ElementTypeFromArg!C, C) && is(ElementTypeFromArg!A == ElementTypeFromArg!B) && (is(ElementTypeFromArg!C == ElementTypeFromArg!A) || is(ElementTypeFromArg!C == Radian)));
+	public KernelStored!Vector3 cross (A, B) (A a, B b) if (StoredOrLiteral!(Vector3, A) && StoredOrLiteral!(Vector3, B));
+	public KernelStored!(ElementTypeFromArg!A) reflect (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)));
+	public KernelStored!(ElementTypeFromArg!A) refract (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)) && StoredOrLiteral!(Radian, C));
+	public KernelStored!(ElementTypeFromArg!A) distance (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)));
+	public KernelStorattachToSetuped!(ElementTypeFromArg!A) faceforward (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && StoredOrLiteral!(ElementTypeFromArg!C, C) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)) && (is(ElementTypeFromArg!A == ElementTypeFromArg!C)));
+	public KernelStored!Radian length (V) (V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V) && KernelComponentBased!(ElementTypeFromArg!V));
+	public void break_ ();
+	public void discard ();
+	public void exit ();
+
+	public KernelStored!T asKernelStored(T, A)(A a)
+        if (is(A : KernelStored!T) || (KernelLiteral!T && is(A : T)))
+    {
+        static if (is(A : KernelStored!T)) {
+            return a;
+        } else {
+            KernelStored!T ks = new KernelStored!T(this, genName());
+            attachToSetup("const " ~ ext!T() ~ " " ~ ks.name ~ "=" ~ serialize!T(a) ~ ";");
+            return ks;
+        }
+    }
+}
+
+public class Kernel (KernelData) : IKernel {
 	private int nameCount = 0;
 	public string genName () {
 		return "_jitkernel"~to!string(nameCount++);
 	}
 
+	import core.sync.mutex;
+	private Mutex mtx;
+	public KernelData data;
 	private string setupCompose = "";
+	public void attachToSetup (string data) { setupCompose ~= data; }
 	private string main = "";
+	public void attachToMain (string data) { main ~= data; }
 	private void delegate(GLint)[string] lateUniformUpdate;
 	private void delegate(int*)[string] upload;
-	public void delegate(Kernel)[] prehooks;
-	public void delegate(Kernel)[] posthooks;
+	public void delegate(Kernel, Vector4, ref KernelData)[] prehooks;
+	public void delegate(Kernel, Vector4, ref KernelData)[] posthooks;
 	private Shader shader;
 	
 	public KernelStored!Vector4 coord;
@@ -209,6 +265,7 @@ public class Kernel {
 	public KernelStored!Radian two;
 	
 	public this () {
+		mtx = new Mutex();
 		coord = new KernelStored!Vector4(this, "gl_FragCoord");
 		uv = new KernelStored!Vector2(this, "uv");
 		import std.math;
@@ -220,15 +277,18 @@ public class Kernel {
 		two = literal(Radian.two);
 	}
 	public static Kernel create () { return new Kernel(); }
-	public this (void delegate (Kernel) setup) { this(); setup(this); }
-	public static Kernel create (void delegate (Kernel) setup) { return new Kernel(setup); }
-	public void compute (void delegate (Kernel) setup) { setup(this); }
+	public this (void delegate (Kernel, ref KernelData) setup) { this(); setup(this, data); }
+	public static Kernel create (void delegate (Kernel, ref KernelData) setup) { return new Kernel(setup); }
+	public void compute (void delegate (Kernel, ref KernelData) setup) { setup(this, data); }
 
-	public void draw (Texture target, Vector4 area) {
-		if (shader is null) build();
-		foreach (void delegate(Kernel) hook; prehooks) hook(this);
-		shader.draw(target, area);
-		foreach (void delegate(Kernel) hook; posthooks) hook(this);
+	public void draw (Texture target, Vector4 area, KernelData input) {
+		synchronized (mtx) {
+			data = input;
+			if (shader is null) build();
+			foreach (void delegate(Kernel, Vector4, ref KernelData) hook; prehooks) hook(this, area, data);
+			shader.draw(target, area);
+			foreach (void delegate(Kernel, Vector4, ref KernelData) hook; posthooks) hook(this, area, data);
+		}
 	}
 
 	public KernelParameter!T uniform (T) (ulong arrayLength = 1) {
@@ -242,7 +302,7 @@ public class Kernel {
 
 	public KernelStored!T link (T) (ref T data, ulong arrayLength = 1) {
 		KernelParameter!T u = uniform!T(arrayLength);
-		prehook((Kernel k) {u.set(data);});
+		prehook((Kernel!KernelData k, Vector4 area, ref KernelData _) { u.set(data); });
 		return u;
 	}
 
@@ -299,14 +359,6 @@ public class Kernel {
 	public void discard () { main ~= "discard;"; }
 	public void exit () { main ~= "return;"; }
 	
-	private KernelStored!T asKernelStored(T, A)(A a) if (is(A : KernelStored!T) || (KernelLiteral!T && is(A : T))) {
-		static if (is(A : KernelStored!T)) {
-			return a;
-		} else {
-			return this.literal!T(a);
-		}
-	}
-	
 	public string exportCode () {
 		return "#version 330 core\nin vec2 uv;out vec4 finalColor;"
 		~ setupCompose
@@ -332,11 +384,11 @@ public class Kernel {
 		}
 	}
 
-	public void prehook (void delegate (Kernel) hook) {
+	public void prehook (void delegate (Kernel, Vector4, ref KernelData) hook) {
 		prehooks ~= hook;
 	}
 
-	public void posthook (void delegate (Kernel) hook) {
+	public void posthook (void delegate (Kernel, Vector4, ref KernelData) hook) {
 		posthooks ~= hook;
 	}
 }
@@ -369,7 +421,7 @@ private string serialize (T) (T literal) {
 	else static assert (false);
 }
 
-public KernelStored!Vector2 translateUV (Kernel k, KernelStored!Vector4 source, KernelStored!Vector4 target) {
+public KernelStored translateUV (K) (K k, KernelStored!Vector4 source, KernelStored!Vector4 target) {
 	return k.mix(
 		source.component!"xy",
 		source.component!"zw",
