@@ -216,7 +216,7 @@ public interface IKernel {
 	public KernelStored!(ElementTypeFromArg!A) reflect (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)));
 	public KernelStored!(ElementTypeFromArg!A) refract (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)) && StoredOrLiteral!(Radian, C));
 	public KernelStored!(ElementTypeFromArg!A) distance (A, B) (A a, B b) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)));
-	public KernelStorattachToSetuped!(ElementTypeFromArg!A) faceforward (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && StoredOrLiteral!(ElementTypeFromArg!C, C) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)) && (is(ElementTypeFromArg!A == ElementTypeFromArg!C)));
+	public KernelStoraed!(ElementTypeFromArg!A) faceforward (A, B, C) (A a, B b, C c) if (StoredOrLiteral!(ElementTypeFromArg!A, A) && StoredOrLiteral!(ElementTypeFromArg!B, B) && StoredOrLiteral!(ElementTypeFromArg!C, C) && (is(ElementTypeFromArg!A == ElementTypeFromArg!B)) && (is(ElementTypeFromArg!A == ElementTypeFromArg!C)));
 	public KernelStored!Radian length (V) (V v) if (StoredOrLiteral!(ElementTypeFromArg!V, V) && KernelComponentBased!(ElementTypeFromArg!V));
 	public void break_ ();
 	public void discard ();
